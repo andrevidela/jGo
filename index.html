@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<style>
+		canvas{
+			background-size: 100% 100%;
+			background-image:url('goban.jpg');
+		}
+
+	</style>
+	<script type='text/javascript' src='jquery-1.9.1.min.js'></script>
+
+	<meta charset="UTF-8">
+	<title>jGo</title>
+</head>
+<body>
+	<canvas id="canvas" width="620" height="620" ></canvas>
+	<script type="text/javascript">
+	var c = document.getElementById('canvas').getContext('2d');
+	c.translate(0.5,0.5);
+	
+	 $('#canvas').click(function (event) {
+	    var totalOffsetX = 0;
+	    var totalOffsetY = 0;
+	    var canvasX = 0;
+	    var canvasY = 0;
+	    var currentElement = this;
+
+	    do {
+	        totalOffsetX += currentElement.offsetLeft;
+	        totalOffsetY += currentElement.offsetTop;
+	    }
+	    while (currentElement = currentElement.offsetParent)
+
+	    canvasX = event.pageX - totalOffsetX;
+	    canvasY = event.pageY - totalOffsetY;
+
+	    // Fix for variable canvas width
+	    canvasX = Math.round( canvasX * (this.width / this.offsetWidth) * (Goban.size + 1) / canvas.width)-1;
+	    canvasY = Math.round( canvasY * (this.height / this.offsetHeight) * (Goban.size + 1) / canvas.height)-1;
+
+	    console.log("x: "+ canvasX + " y: "+canvasY);
+	    Goban.play(canvasX,canvasY);
+	});
+
+
+	var backgroundImage = new Image();
+	backgroundImage.src = 'background.jpg';
+
+	var Goban = {
+
+		/*
+		array containing stones
+		0 are black stones
+		1 are white stones
+		-1 are empty spots
+		-2 are "uncertain" stones
+		-3 are dead stones
+		*/
+		board	: new Array(),
+
+		//size of the goban
+		size	: 19,
+
+		/*
+		player 0 is black player, stones 0 are black stones
+		player 1 is white plyaer, stones 1 are white stones
+		*/
+		player	: 0,
+
+		/*
+		Initialization method.
+		constructs the goban array, checks for stating player
+		*do stuff*
+		*…*
+		*/
+		init 	: function(){
+			console.log("Initiliazing Goban");
+			for( i=0; i<this.size+1; i++){
+				this.board[i] = new Array();
+
+				for( j=0; j<this.size+1; j++){
+					this.board[i].push(-1);
+				}
+			}
+		},
+
+		selection : {
+			x: -1,
+			y:-1
+		},
+
+		select : function( x, y ){
+			this.selection.x = x;
+			this.selection.y = y;
+		},
+
+		deselect: function( x, y ){
+			this.selection.x = -1;
+			this.selection.y = -1;
+		},
+
+		checkLiberties : function( x, y ){
+
+		},
+
+		/*
+		Plays on x, y on the board.
+		If the board returns to a previous state, the player is not allowed to play, Ko rule.
+		if a stone has liberties it can be placed. 
+		If the stone has no liberties when placed but is killing another group, the stone can be placed.
+		If the stone has no liberties when placed and is killing itself, the stone cannot be placed, suicide rule.
+
+		*/
+		play 	: function( x, y ) {
+			if( x >= 0 && y >=0  && x < this.size && y < this.size ){
+				this.board[Math.floor(x)][Math.floor(y)] = this.player;
+
+				//invert player
+				this.player = (this.player + 1) % 2;
+				Draw.everything();
+			}else{
+				console.log("coordinates out of bounds");
+			}
+		},
+
+		cleanUp	: function(){
+			this.findAndReplace( -2, -1);
+		},
+
+		/*
+		find and replace in the board
+		*/
+		findAndReplace : function( find, replace ){
+			for( i=0; i<=size; i++){
+				for( j in this.board[i] ){
+					if( this.board[i][j] == find){
+						this.board[i][j] = replace;
+					}
+				}
+			}
+		}
+	}
+
+	var Draw = {
+		background: function(){
+			console.log( "Drawing Goban" );
+			c.save();
+    		c.fill();
+			for (var i = 1; i < 20; i++){
+    			c.moveTo(Math.floor( i * canvas.width/20 ), Math.floor(canvas.height/20/2));
+    			c.lineTo(Math.floor( i * canvas.width/20 ), Math.floor(canvas.height-canvas.height/20/2 ));
+    			c.moveTo(Math.floor( canvas.width/20/2 ), Math.floor(i*canvas.height/20));
+    			c.lineTo(Math.floor( canvas.width - canvas.width/20/2 ), Math.floor( i * canvas.height/20 ));
+    		}
+    		/*c.strokeRect(
+    			canvas.width/20,
+    			canvas.height/20,
+    			canvas.width  - canvas.width/20,
+    			canvas.height - canvas.height/20);*/
+    		c.lineWidth = '1';
+    		c.stroke();
+    		c.restore();
+
+    		console.log( "background has been drawn" );
+		},
+
+		/*
+			Draw a stone at coordinates x,y of the boards array
+		*/
+		stone: function(x,y,color){
+			c.save();
+			x = (1 + x) * canvas.width  / (Goban.size + 1);
+			y = (1 + y) * canvas.height / (Goban.size + 1);
+			r = 0.95 * (1 / Math.sqrt(2)) * canvas.width / (Goban.size + 1);
+			c.moveTo( x, y );
+			c.arc( x, y, r, 0, 2*Math.PI, false );
+			c.fillStyle = color;
+			c.fill();
+			c.restore();
+		},
+
+		/*
+		Browse the goban array and draw all stones
+		*/
+		allStones: function(){
+			for(i = 0; i < Goban.board.length; i++){
+				for(j in Goban.board[i]){
+					if(Goban.board[i][j] == 0 || Goban.board[i][j] == 1){
+						this.stone( i, j, Goban.board[i][j] ? "white" : "black" );
+					}
+				}
+			}
+		},
+
+		/*
+		draw the selection mark
+		*/
+		selector: function(){
+			c.save();
+			x = (1 + Goban.selection.x) * canvas.width  / (Goban.size + 1);
+			y = (1 + Goban.sleection.y) * canvas.height / (Goban.size + 1);
+			r = canvas.width / (Goban.size + 1) * 0.95;
+			c.arc( x, y, r, 0, 2*Math.PI, false );
+			c.stroke();
+			c.restore();
+
+		},
+
+		/*
+		draw every visible element of the goban
+		*/
+		everything: function(){
+			this.background();
+			this.allStones();
+		}
+	}
+	Draw.everything();
+	Goban.init();
+
+
+	</script>
+</body>
+</html>
