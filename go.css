@@ -1,0 +1,8 @@
+#goban{
+	background:url("resources/goban2.png");
+	background-repeat:none;
+	width:620px;
+	height:620px;
+	margin-left:auto;
+	margin-right:auto;
+}
